@@ -1,8 +1,6 @@
 <?php
-
   require_once("classScielo.php");
   require_once('applications/scielo-org/sso/header.php');
-
   // Create new Scielo object
   $host = $_SERVER['HTTP_HOST'];
   $scielo = new Scielo($host);
@@ -261,6 +259,7 @@ function wxis_exe ($url){
 }
 
 //wxis-line-command
+
 function wxis_exe_ ($url){
 
   // Criar um novo Objeto Scielo

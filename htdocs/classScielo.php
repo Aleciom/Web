@@ -69,13 +69,17 @@ class Scielo extends ScieloBase
       $url .= "&sln=" . strtolower ( $this->_def->getKeyValue("STANDARD_LANG") );
       $url .= "&" . $this->_request->getQueryString ();
       
+      print "<!-- URL OLD ".$url."-->";
+      # Tudo acima pode ser descartado
+      $url = "http://".$_SERVER['HTTP_HOST']."/couchController/couchController.php?sln=en&lng=en&nrm=iso&".$this->_request->getQueryString ();
+      print "<!-- URL NEW ".$url."-->";
       return $url;
     }
 
     function GenerateXmlUrl()
     {
             $this->_IsisScriptUrl = $this->GenerateIsisScriptUrl();
-            $xmlFromIsisScript = wxis_exe($this->_IsisScriptUrl);
+            $xmlFromIsisScript = file_get_Contents($this->GenerateIsisScriptUrl());
 
             /*
             *Resgatando o valor de siglum
