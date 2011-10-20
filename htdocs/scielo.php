@@ -1,5 +1,4 @@
 <?php
-
   require_once("classScielo.php");
   require_once('applications/scielo-org/sso/header.php');
 
@@ -261,6 +260,7 @@ function wxis_exe ($url){
 }
 
 //wxis-line-command
+
 function wxis_exe_ ($url){
 
   // Criar um novo Objeto Scielo
