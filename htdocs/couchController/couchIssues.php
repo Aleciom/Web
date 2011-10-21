@@ -6,12 +6,11 @@ if ($_REQUEST["debug"] != "yes"){
 // GETTING SERIAL
 $serial = getSerialMetadata($pid);
 
-// PRESS RELEASES
-if ($conf['services']['show_press_releases'] == 1){
-  $pressReleases = getSerialPressReleasesMetadata($pid);
-}
+// GETTING ISSUES LIST $issues[year][vol][num]=PID 
+$issues = getIssuesList($pid);
+
 ?>
-<SERIAL LASTUPDT="<?=date("Ymd hms")?>"> 
+<SERIAL> 
  <CONTROLINFO> 
   <DATETIME><?=date("Ymd hms")?></DATETIME> 
   <LANGUAGE><?= $lng?></LANGUAGE> 
@@ -47,7 +46,7 @@ if ($conf['services']['show_press_releases'] == 1){
       <?}?>
     </FUTURE_ISSUES>
    <?}?>
-   <ISSUES>   
+   <ISSUES>
    <?if ($serial['timeLine']['previous']['pid'] != ""){?>
     <PREVIOUS PID="<?=$serial['timeLine']['previous']['pid']?>" VOL="<?=$serial['timeLine']['previous']['vol']?>" NUM="<?=$serial['timeLine']['previous']['num']?>" />
     <?}?>
@@ -56,8 +55,7 @@ if ($conf['services']['show_press_releases'] == 1){
       <NEXT PID="<?=$serial['timeLine']['next']['pid']?>" <?if ($serial['timeLine']['next']['vol'] != "") {?>VOL="<?=$serial['timeLine']['next']['vol']?>"<?}?> NUM="<?=strtoupper($serial['timeLine']['next']['num'])?>" />
     <?}?>
   </ISSUES>
- </CONTROLINFO>
- 
+ </CONTROLINFO> 
   <TITLEGROUP>
   <TITLE><![CDATA[<?=$serial['title']?>]]></TITLE>
   <SHORTTITLE><![CDATA[<?= $serial['shortTitle']?>]]></SHORTTITLE>
@@ -113,17 +111,31 @@ if ($conf['services']['show_press_releases'] == 1){
     <EMAILS>
       <EMAIL><?=$serial['email']?></EMAIL>
     </EMAILS>
- </CONTACT>
+  </CONTACT>
   <?if ($serial['submissionUrl'] != "") {?>
     <link type="online_submission"><![CDATA[<?=$serial['submissionUrl']?>]]></link>
   <?}?>
-  <?if ($conf['services']['show_press_releases'] == 1){?>
-    <PRESSRELEASE>
-      <?foreach ($pressReleases as $doc){?>
-        <article data="<?=$doc['pubDate']?>" vol="<?=$doc['vol']?>" num="<?=$doc['num']?>" sup="<?=$doc['sup']?>" pid="<?=$doc['pid']?>" prpid="<?=$doc['prpid']?>">
-          <title lang="en"><![CDATA[<?=$doc['title']?>]]></title>
-        </article>
+  <AVAILISSUES>
+  <?foreach ($issues as $year=>$valueA){?>
+    <YEARISSUE YEAR="<?=$year?>">
+      <?foreach ($valueA as $vol=>$valueB){?>
+      <VOLISSUE VOL="<?=$vol?>">
+        <?foreach ($valueB["num"] as $num=>$valueC){?>
+          <ISSUE NUM="<?=strtoupper($num)?>" SEQ="<?=$valueC?>"/>
         <?}?>
-    </PRESSRELEASE>
+        <?foreach ($valueB["supplnum"] as $num=>$valueC){?>
+          <ISSUE SUPPL="<?=strtoupper($num)?>" SEQ="<?=$valueC?>"/>
+        <?}?>
+        <?foreach ($valueB["supplvol"] as $num=>$valueC){?>
+          <ISSUE SUPPL="<?=strtoupper($num)?>" SEQ="<?=$valueC?>"/>
+        <?}?>
+        <?foreach ($valueB["ahead"] as $num=>$valueC){?>
+          <ISSUE NUM="<?=strtoupper($num)?>" SEQ="<?=$valueC?>"/>
+        <?}?>
+      </VOLISSUE>
+      <?}?>
+    </YEARISSUE>
   <?}?>
+  </AVAILISSUES>
+  <COLUMNS>13</COLUMNS>
 </SERIAL>

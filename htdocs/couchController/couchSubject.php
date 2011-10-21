@@ -3,10 +3,10 @@ if ($_REQUEST["debug"] != True){
   header('Content-Type: text/xml');
 }
 
-$docs = getAlphabeticList();
-
+// GETTING Alphabetic list grouped by subject
+$docs = getSubjectAlphabeticList();
 ?>
-<SERIALLIST> 
+<SUBJECTLIST> 
  <CONTROLINFO> 
   <DATETIME><?=date("Ymd hms")?></DATETIME> 
   <LANGUAGE><?= $lng?></LANGUAGE> 
@@ -59,30 +59,31 @@ $docs = getAlphabeticList();
 <?
 $list = "";
 ksort($docs);
-foreach ($docs as $title=>$doc){
-?>
-  <SERIAL QTYISS="<?=$doc['issues_total']?>">
-    <TITLE ISSN="<?=$doc['issn']?>"><![CDATA[<?=$doc['title']?>]]></TITLE>
-    <journal-status-history>
-      <?if ($doc['history'][0]['d'] != ""){?>
-        <current-status date="<?=$doc['history'][0]['c']?>" status="<?=$doc['history'][0]['d']?>"/> 
-      <?}else{?>
-        <current-status date="<?=$doc['history'][0]['a']?>" status="<?=$doc['history'][0]['b']?>"/> 
-      <?}?>
-      <periods>      
-      <?foreach ($doc['history'] as $hist){?>
-          <period> 
-            <begin date="<?=$doc['history'][0]['a']?>" status="<?=$doc['history'][0]['b']?>"/> 
-            <?if ($doc['history'][0]['d'] != ""){?>
-              <end date="<?=$doc['history'][0]['c']?>" status="<?=$doc['history'][0]['d']?>"/>
-            <?}?>
-          </period> 
-      <?}?>
-      </periods> 
-    </journal-status-history> 
-  </SERIAL>
-<?
-}
-?>
+foreach ($docs as $subject=>$docsBySubject){?>
+  <SUBJECT NAME="<?=strtoupper($subject)?>">
+    <?foreach ($docsBySubject as $doc){?>
+      <SERIAL QTYISS="<?=$doc['issues_total']?>">
+        <TITLE ISSN="<?=$doc['issn']?>"><![CDATA[<?=$doc['title']?>]]></TITLE>
+        <journal-status-history>
+          <?if ($doc['history'][0]['d'] != ""){?>
+            <current-status date="<?=$doc['history'][0]['c']?>" status="<?=$doc['history'][0]['d']?>"/> 
+          <?}else{?>
+            <current-status date="<?=$doc['history'][0]['a']?>" status="<?=$doc['history'][0]['b']?>"/> 
+          <?}?>
+          <periods>      
+          <?foreach ($doc['history'] as $hist){?>
+              <period> 
+                <begin date="<?=$doc['history'][0]['a']?>" status="<?=$doc['history'][0]['b']?>"/> 
+                <?if ($doc['history'][0]['d'] != ""){?>
+                  <end date="<?=$doc['history'][0]['c']?>" status="<?=$doc['history'][0]['d']?>"/>
+                <?}?>
+              </period> 
+          <?}?>
+          </periods> 
+        </journal-status-history> 
+      </SERIAL>
+    <?}?>
+  </SUBJECT>
+<?}?>
  </LIST>
- </SERIALLIST>
+ </SUBJECTLIST>

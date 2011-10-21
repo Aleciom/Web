@@ -3,13 +3,19 @@ if ($_REQUEST["debug"] != "yes"){
   header('Content-Type: text/xml');
 }
 
+
 // GETTING SERIAL
 $serial = getSerialMetadata($pid);
 
-// PRESS RELEASES
-if ($conf['services']['show_press_releases'] == 1){
-  $pressReleases = getSerialPressReleasesMetadata($pid);
-}
+// CONSTRUCTING ISSUE METADATA
+$issue =  getIssueMetadata($pid);
+
+// CONSTRUCTION TABLE OF CONTENTS (QUERY-2)
+$sections = getTableOfContents($pid);
+
+//die(var_dump($sections));
+//die(var_dump($docs[0]));
+
 ?>
 <SERIAL LASTUPDT="<?=date("Ymd hms")?>"> 
  <CONTROLINFO> 
@@ -17,6 +23,7 @@ if ($conf['services']['show_press_releases'] == 1){
   <LANGUAGE><?= $lng?></LANGUAGE> 
   <STANDARD>iso</STANDARD> 
   <PAGE_NAME><?= $script?></PAGE_NAME> 
+  <PAGE_ID><?= $pid?></PAGE_ID>
   <APP_NAME><?= $conf["SITE_INFO"]["APP_NAME"]?></APP_NAME> 
   <SITE_NAME><?= $conf["SITE_INFO"]["SITE_NAME"]?></SITE_NAME>
   <ENABLE_STAT_LINK><?= $conf["LOG"]["ENABLE_STATISTICS_LINK"]?></ENABLE_STAT_LINK> 
@@ -40,6 +47,7 @@ if ($conf['services']['show_press_releases'] == 1){
    <STAT_SERVER_COAUTH><?= $conf["SCIELO"]["STAT_SERVER_COAUTH"]?></STAT_SERVER_COAUTH> 
    <GOOGLE_CODE><?= $conf["LOG"]["GOOGLE_CODE"]?></GOOGLE_CODE> 
   </SCIELO_INFO> 
+
   <?if ($serial['timeLine']['future']){?>
     <FUTURE_ISSUES>
       <?foreach ($serial['timeLine']['future'] as $key=>$value){?>
@@ -47,11 +55,10 @@ if ($conf['services']['show_press_releases'] == 1){
       <?}?>
     </FUTURE_ISSUES>
    <?}?>
-   <ISSUES>   
+   <ISSUES>
    <?if ($serial['timeLine']['previous']['pid'] != ""){?>
     <PREVIOUS PID="<?=$serial['timeLine']['previous']['pid']?>" VOL="<?=$serial['timeLine']['previous']['vol']?>" NUM="<?=$serial['timeLine']['previous']['num']?>" />
     <?}?>
-    <CURRENT PID="<?=$serial['timeLine']['current']['pid']?>" VOL="<?=$serial['timeLine']['current']['vol']?>" NUM="<?=$serial['timeLine']['current']['num']?>" />
     <?if ($serial['timeLine']['next']['pid'] != ""){?>
       <NEXT PID="<?=$serial['timeLine']['next']['pid']?>" <?if ($serial['timeLine']['next']['vol'] != "") {?>VOL="<?=$serial['timeLine']['next']['vol']?>"<?}?> NUM="<?=strtoupper($serial['timeLine']['next']['num'])?>" />
     <?}?>
@@ -85,16 +92,14 @@ if ($conf['services']['show_press_releases'] == 1){
     <?}?>
     </periods> 
   </journal-status-history> 
-  <?if ($serial['formerTitle'] != ""){?>
   <CHANGESINFO>
     <FORMERTITLE>
       <TITLE><![CDATA[<?=$serial['formerTitle']?>]]></TITLE>
     </FORMERTITLE>
   </CHANGESINFO>
-  <?}?>
   <ISSN_AS_ID><?=$serial['issnAsId']?></ISSN_AS_ID>
   <ISSN><?=$serial['issn']?></ISSN>
-  <TITLE_ISSN TYPE="<?=$serial['issnType']?>"><?=$serial['issnAsId']?></TITLE_ISSN>
+  <ISSUE_ISSN TYPE="<?=$serial['issnType']?>"><?=$serial['issnAsId']?></ISSUE_ISSN>
   <PUBLISHERS>
     <?foreach ($serial['publishers'] as $value) {?>
       <PUBLISHER>
@@ -114,16 +119,54 @@ if ($conf['services']['show_press_releases'] == 1){
       <EMAIL><?=$serial['email']?></EMAIL>
     </EMAILS>
  </CONTACT>
-  <?if ($serial['submissionUrl'] != "") {?>
-    <link type="online_submission"><![CDATA[<?=$serial['submissionUrl']?>]]></link>
-  <?}?>
-  <?if ($conf['services']['show_press_releases'] == 1){?>
-    <PRESSRELEASE>
-      <?foreach ($pressReleases as $doc){?>
-        <article data="<?=$doc['pubDate']?>" vol="<?=$doc['vol']?>" num="<?=$doc['num']?>" sup="<?=$doc['sup']?>" pid="<?=$doc['pid']?>" prpid="<?=$doc['prpid']?>">
-          <title lang="en"><![CDATA[<?=$doc['title']?>]]></title>
-        </article>
-        <?}?>
-    </PRESSRELEASE>
-  <?}?>
+
+<ISSUE VOL="<?=$issue['vol']?>" NUM="<?=$issue['num']?>" PUBDATE="<?=$issue['pubDate']?>" STATUS="">
+<STRIP LANG="en">
+<SHORTTITLE><![CDATA[<?=$issue['shortTitle']?>]]></SHORTTITLE>
+<VOL><?=$issue['info']['v']?></VOL>
+<NUM><?=$issue['info']['n']?></NUM>
+<CITY><?=$issue['info']['c']?></CITY>
+<MONTH><?=$issue['info']['m']?></MONTH>
+<YEAR><?=$issue['info']['a']?></YEAR>
+</STRIP>
+<?foreach ($sections as $sectionKey=>$section){?>
+  <SECTION>
+    <?if (trim($sectionKey) != "nd"){?><NAME><![CDATA[<?=$issue['sections'][$sectionKey]?>]]></NAME><?}?>
+    <?foreach ($section as $articleKey=>$article){?>
+      <ARTICLE PID="<?=$articleKey?>" TEXT_LANG="<?=$article['pid']?>" entrdate="">
+        <LANGUAGES MAXLINES="<?=count($article['abstractLanguages'])?>">
+          <ABSTRACT_LANGS>
+            <?foreach ($article['abstractLanguages'] as $avLanguage){?>
+              <LANG><?=$avLanguage?></LANG>
+            <?}?>
+          </ABSTRACT_LANGS>
+          <ART_TEXT_LANGS>
+            <?foreach ($article['files']['html'] as $htmlLanguageKey=>$htmlLanguage){?>
+              <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
+            <?}?>
+          </ART_TEXT_LANGS>
+          <PDF_LANGS>
+            <?foreach ($article['files']['pdf'] as $htmlLanguageKey=>$htmlLanguage){?>
+              <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
+            <?}?>
+          </PDF_LANGS>
+        </LANGUAGES>
+        <TITLE><![CDATA[<b><?=$article['title']?></b>]]></TITLE>
+        <SUBTITLE><![CDATA[<?=$article['subTitle']?>]]></SUBTITLE>
+        <AUTHORS>
+          <AUTH_PERS>
+            <?foreach ($article['authors'] as $author) {?>
+                <AUTHOR SEARCH="<?=$author['search']?>">
+                  <AFF xref="<?=$author['affiliation']?>"/>
+                  <NAME><![CDATA[<?=$author['name']?>]]></NAME>
+                  <SURNAME><![CDATA[<?=$author['surName']?>]]></SURNAME>
+               </AUTHOR>
+            <?}?>
+          </AUTH_PERS>
+        </AUTHORS>
+      </ARTICLE>
+    <?}?>
+  </SECTION>
+<?}?>
+</ISSUE>
 </SERIAL>
