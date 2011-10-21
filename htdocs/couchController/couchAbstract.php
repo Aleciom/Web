@@ -110,7 +110,7 @@ $article = getArticleMetadata($pid);
       <EMAIL><?=$serial['email']?></EMAIL>
     </EMAILS>
  </CONTACT>
- <ARTICLE TEXT_LANG="<?=$article['originalLanguage']?>" TEXTLANG="<?=$article['originalLanguage']?>" FPAGE="<?=$article['fpage']?>" LPAGE="<?=$article['lpage']?>" PID="<?=$article['pid']?>" CURR_DATE="<?=date('Ymd')?>" ahpdate="" entrdate="" RELATED="<?=$article['related']?>" CITED="<?=$article['cited']?>" AREASGEO="<?=$article['areasgeo']?>" PROCESSDATE="<?=$article['processDate']?>" DOI="<?=$article['doi']?>" PDF="1">
+ <ARTICLE TEXT_LANG="<?=$article['originalLanguage']?>" TEXTLANG="<?=$article['originalLanguage']?>" FPAGE="<?=$article['fpage']?>" LPAGE="<?=$article['lpage']?>" PID="<?=$article['pid']?>" CURR_DATE="<?=date('Ymd')?>" ahpdate="<?=$article['ahpDate']?>" entrdate="<?=$article['ahpDate']?>" RELATED="<?=$article['related']?>" CITED="<?=$article['cited']?>" AREASGEO="<?=$article['areasgeo']?>" PROCESSDATE="<?=$article['processDate']?>" DOI="<?=$article['doi']?>">
  <LATTES>
  </LATTES>
  <LANGUAGES MAXLINES="<?=count($article['abstractLanguages'])?>">
@@ -120,12 +120,14 @@ $article = getArticleMetadata($pid);
     <?}?>
   </ABSTRACT_LANGS>
   <ART_TEXT_LANGS>
-    <?foreach ($article['textLanguages'] as $avLanguage){?>
-      <LANG><?=$avLanguage?></LANG>
+    <?foreach ($article['files']['html'] as $htmlLanguageKey=>$htmlLanguage){?>
+      <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
     <?}?>
   </ART_TEXT_LANGS>
   <PDF_LANGS>
-    <LANG TRANSLATION="bjoce/v57n2/a01v57n2.pdf">en</LANG>
+    <?foreach ($article['files']['pdf'] as $htmlLanguageKey=>$htmlLanguage){?>
+      <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
+    <?}?>
   </PDF_LANGS>
 </LANGUAGES>
   <ISSUEINFO VOL="<?=$issue['vol']?>" NUM="<?=$issue['num']?>" YEAR="<?=$issue['info']['a']?>" MONTH="<?=$issue['info']['m']?>" PUBDATE="<?=$issue['pubDate']?>" STATUS="">
@@ -149,7 +151,9 @@ $article = getArticleMetadata($pid);
     <AUTH_PERS>
       <?foreach ($article['authors'] as $author) {?>
           <AUTHOR SEARCH="<?=$author['search']?>">
-            <AFF xref="<?=$author['affiliation']?>"/>
+            <?foreach ($author['affiliation'] as $aff){?>
+              <AFF xref="<?=$aff?>"/>
+            <?}?>
             <NAME><![CDATA[<?=$author['name']?>]]></NAME>
             <SURNAME><![CDATA[<?=$author['surName']?>]]></SURNAME>
             <UPP_NAME><![CDATA[<?=strtoupper($author['name'])?>]]></UPP_NAME>

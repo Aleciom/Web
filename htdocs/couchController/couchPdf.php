@@ -103,31 +103,7 @@ $article = getArticleMetadata($pid);
       <EMAIL><?=$serial['email']?></EMAIL>
     </EMAILS>
  </CONTACT>
- 
-
-
-
- <ARTICLE TEXT_LANG="<?=$article['originalLanguage']?>" TEXTLANG="<?=$article['originalLanguage']?>" FPAGE="<?=$article['fpage']?>" LPAGE="<?=$article['lpage']?>" PID="<?=$article['pid']?>" CURR_DATE="<?=date('Ymd')?>" ahpdate="<?=$article['ahpDate']?>" entrdate="<?=$article['entrDate']?>" RELATED="<?=$article['related']?>" CITED="<?=$article['cited']?>" AREASGEO="<?=$article['areasgeo']?>" PROCESSDATE="<?=$article['processDate']?>" DOI="<?=$article['doi']?>">
-
- <LATTES>
- </LATTES>
- <LANGUAGES MAXLINES="<?=count($article['abstractLanguages'])?>">
-  <ABSTRACT_LANGS>
-    <?foreach ($article['abstractLanguages'] as $avLanguage){?>
-      <LANG><?=$avLanguage?></LANG>
-    <?}?>
-  </ABSTRACT_LANGS>
-  <ART_TEXT_LANGS>
-    <?foreach ($article['files']['html'] as $htmlLanguageKey=>$htmlLanguage){?>
-      <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
-    <?}?>
-  </ART_TEXT_LANGS>
-  <PDF_LANGS>
-    <?foreach ($article['files']['pdf'] as $htmlLanguageKey=>$htmlLanguage){?>
-      <LANG TRANSLATION="<?=$htmlLanguage?>"><?=$htmlLanguageKey?></LANG>
-    <?}?>
-  </PDF_LANGS>
-</LANGUAGES>
+ <ARTICLE PDF_LANG="<?=$article['originalLanguage']?>" FPAGE="<?=$article['fpage']?>" LPAGE="<?=$article['lpage']?>" PID="<?=$article['pid']?>" CURR_DATE="<?=date('Ymd')?>" ahpdate="<?=$article['ahpDate']?>">
   <ISSUEINFO VOL="<?=$issue['vol']?>" NUM="<?=$issue['num']?>" YEAR="<?=$issue['info']['a']?>" MONTH="<?=$issue['info']['m']?>" PUBDATE="<?=$issue['pubDate']?>" STATUS="">
     <STRIP LANG="en">
       <SHORTTITLE><![CDATA[<?=$issue['shortTitle']?>]]></SHORTTITLE>
@@ -150,7 +126,7 @@ $article = getArticleMetadata($pid);
       <?foreach ($article['authors'] as $author) {?>
           <AUTHOR SEARCH="<?=$author['search']?>">
             <?foreach ($author['affiliation'] as $aff){?>
-              <AFF xref="<?=$aff?>"/>
+            <AFF xref="<?=$aff?>"/>
             <?}?>
             <NAME><![CDATA[<?=$author['name']?>]]></NAME>
             <SURNAME><![CDATA[<?=$author['surName']?>]]></SURNAME>
@@ -160,16 +136,6 @@ $article = getArticleMetadata($pid);
       <?}?>
     </AUTH_PERS>
   </AUTHORS>
-
-  <ABSTRACT xml:lang="<?=$article['abstractLanguage']?>"><![CDATA[<?=$article['abstract']?>]]></ABSTRACT>
-
-  <KEYWORDS>
-    <?foreach ($article['keywords'] as $key=>$keyword){?>
-      <KEYWORD>
-        <KEY><![CDATA[<?=$key?>]]></KEY>
-      </KEYWORD>
-    <?}?>
-  </KEYWORDS>
 
  </ARTICLE>
  </SERIAL>

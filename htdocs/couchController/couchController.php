@@ -31,6 +31,7 @@ switch ($script){
 		require_once("couchIssues.php");	
 	break;
 	case "sci_pdf";
+		require_once("couchPdf.php");
 	break;
 	default;
 	break;

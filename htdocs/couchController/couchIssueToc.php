@@ -133,7 +133,7 @@ $sections = getTableOfContents($pid);
   <SECTION>
     <?if (trim($sectionKey) != "nd"){?><NAME><![CDATA[<?=$issue['sections'][$sectionKey]?>]]></NAME><?}?>
     <?foreach ($section as $articleKey=>$article){?>
-      <ARTICLE PID="<?=$articleKey?>" TEXT_LANG="<?=$article['pid']?>" entrdate="">
+      <ARTICLE PID="<?=$articleKey?>" TEXT_LANG="<?=$article['pid']?>" entrdate="<?=$article['entrDate']?>">
         <LANGUAGES MAXLINES="<?=count($article['abstractLanguages'])?>">
           <ABSTRACT_LANGS>
             <?foreach ($article['abstractLanguages'] as $avLanguage){?>
@@ -157,7 +157,9 @@ $sections = getTableOfContents($pid);
           <AUTH_PERS>
             <?foreach ($article['authors'] as $author) {?>
                 <AUTHOR SEARCH="<?=$author['search']?>">
-                  <AFF xref="<?=$author['affiliation']?>"/>
+                  <?foreach ($author['affiliation'] as $aff){?>
+                    <AFF xref="<?=$aff?>"/>
+                  <?}?>
                   <NAME><![CDATA[<?=$author['name']?>]]></NAME>
                   <SURNAME><![CDATA[<?=$author['surName']?>]]></SURNAME>
                </AUTHOR>

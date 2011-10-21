@@ -1,4 +1,156 @@
 <?
+function getArticleTimeline($currentArticle){
+	global $COUCHDB_VIEWS, $COUCHDB_QUERIES, $DB_SERVER, $DB_NAME, $LIMIT, $LANG, $conf, $tlng, $lng, $sln;
+
+	$range = substr($currentArticle,0,18);
+
+	$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["articles_range"]));
+	$articles = json_decode($query);
+
+    $timeLineIds = Array();
+    $timeLine = Array();
+
+	foreach($articles->{rows} as $index=>$article){
+		if ($article->{key} == $currentArticle){
+			$timeLineIds['previous'] = $articles->{rows}[$index+1]->{key};
+			$timeLineIds['current'] = $article->{key};
+			$timeLineIds['next'] = $articles->{rows}[$index-1]->{key};
+		}
+	}
+
+	//GETTING METADATA FROM THE ISSUES IN THE TIMELINE
+	foreach ($timeLineIds as $key=>$value){
+		$query = file_get_contents(str_replace("{pid}",$value,$COUCHDB_VIEWS["sci_article"]));
+		$article = json_decode($query);
+		$timeLine[$key]['pid'] = $value;
+		$timeLine[$key]['title'] = "";	
+		
+		// GETTING ARTICLE TITLE
+		$tmpTitle = Array();
+		foreach($article->{rows}[0]->{doc}->{v12} as $value){
+		  $tmpTitle[$value->{l}] = $value->{_};
+		}
+		if (array_key_exists($tlng,$tmpTitle)){ //IDIOMA INTERFACE
+		  $timeLine[$key]['title']=$tmpTitle[$tlng];
+		}elseif (array_key_exists($LANG,$tmpTitle)){ //IDIOMA PADRAO
+		  $timeLine[$key]['title']=$tmpTitle[$LANG];
+		}else{
+		  $timeLine[$key]['title']=current($tmpTitle);
+		}	
+	}
+
+	return $timeLine;
+}
+
+function getIssueTimeline($currentIssue){
+	global $COUCHDB_VIEWS, $COUCHDB_QUERIES, $DB_SERVER, $DB_NAME, $LIMIT, $LANG, $conf, $tlng, $lng, $sln;
+
+	if (strlen($currentIssue) == 9){ // Serial Context
+
+		$query = file_get_contents(str_replace("{pid}",$currentIssue,$COUCHDB_VIEWS["issues_range"]."&limit=5&include_docs=true"));
+		$lastIssues = json_decode($query);
+		
+		$timeLine = Array();
+		foreach ($lastIssues->{rows} as $value){
+			$issue = $value->{doc};
+			$pid = $value->{key};
+	  		$vol = $issue->{v31}[0]->{_};
+	  		$pr = $issue->{v41}[0]->{_}; // Indicates if the issue is a press release
+	  		$num = $issue->{v32}[0]->{_};
+	  		$supplvol = $issue->{v131}[0]->{_};
+	  		$supplnum = $issue->{v132}[0]->{_};	
+
+			if ($pr != "pr"){  // Ignore issue if it's a press release
+			    if ($num == "ahead"){
+			    	$timeLine['future']['ahead']["pid"]=$pid;
+			    	$timeLine['future']['ahead']["vol"]=$vol;
+			    	$timeLine['future']['ahead']["num"]=$num;
+			    }
+			    if ($num == "review"){
+			    	$timeLine['future']['review']["pid"]=$pid;
+			    	$timeLine['future']['review']["vol"]=$vol;
+			    	$timeLine['future']['review']["num"]=$num;			    	
+			    }
+			    if ($supplvol == "" and $supplnum == "" and $num !="ahead"){
+			    	if (array_key_exists('current',$timeLine)){
+				    	$timeLine['previous']["pid"]=$pid;
+				    	$timeLine['previous']["vol"]=$vol;
+				    	$timeLine['previous']["num"]=$num;
+				    	$timeLine['previous']["supplvol"]=$supplvol;
+				    	$timeLine['previous']["supplnum"]=$supplnum;
+				    	break;
+				   	}else{
+				    	$timeLine['current']["pid"]=$pid;
+				    	$timeLine['current']["vol"]=$vol;
+				    	$timeLine['current']["num"]=$num;
+				    	$timeLine['current']["supplvol"]=$supplvol;
+				    	$timeLine['current']["supplnum"]=$supplnum;				   		
+				   	}
+			    }
+			}
+		}
+	}elseif (strlen($currentIssue) == 17){ //Issue Context
+		
+		$range = substr($currentIssue,0,9);
+		
+		$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["issues_range"])); // Simple query without include_docs, just to identify de issues timeline pid
+		$lastIssues = json_decode($query);
+
+		//GETTING TIME LINE ACCORDING TO CURRENT ISSUE
+        $timeLineIds = Array();
+        $timeLine = Array();
+		foreach($lastIssues->{rows} as $index=>$issue){
+			if ($issue->{key} == $currentIssue){
+				$timeLineIds['previous'] = $lastIssues->{rows}[$index+1]->{key};
+				$timeLineIds['current'] = $issue->{key};
+				$timeLineIds['next'] = $lastIssues->{rows}[$index-1]->{key};
+			}
+		}
+
+		//GETTING METADATA FROM THE ISSUES IN THE TIMELINE
+		foreach ($timeLineIds as $key=>$value){
+			$query = file_get_contents(str_replace("{pid}",$value,$COUCHDB_VIEWS["sci_issue"]));
+			$issue = json_decode($query);
+			
+			$timeLine[$key]['pid'] = $value;
+			$timeLine[$key]['vol'] = $issue->{rows}[0]->{doc}->{v31}[0]->{_};
+			$timeLine[$key]['num'] = $issue->{rows}[0]->{doc}->{v32}[0]->{_};
+			$timeLine[$key]['supplvol'] = $issue->{rows}[0]->{doc}->{v131}[0]->{_};
+			$timeLine[$key]['supplnum'] = $issue->{rows}[0]->{doc}->{v132}[0]->{_};
+			
+		}
+
+		//GETTING FUTURE ISSUES 
+		$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["issues_range"]."&limit=5&include_docs=true"));
+		$lastIssues = json_decode($query);
+
+		foreach ($lastIssues->{rows} as $value){
+			$issue = $value->{doc};
+			$pid = $value->{key};
+	  		$vol = $issue->{v31}[0]->{_};
+	  		$pr = $issue->{v41}[0]->{_}; // Indicates if the issue is a press release
+	  		$num = $issue->{v32}[0]->{_};
+	  		$supplvol = $issue->{v131}[0]->{_};
+	  		$supplnum = $issue->{v132}[0]->{_};	
+
+			if ($pr != "pr"){  // Ignore issue if it's a press release
+			    if ($num == "ahead"){
+			    	$timeLine['future']['ahead']["pid"]=$pid;
+			    	$timeLine['future']['ahead']["vol"]=$vol;
+			    	$timeLine['future']['ahead']["num"]=$num;
+			    }
+			    if ($num == "review"){
+			    	$timeLine['future']['review']["pid"]=$pid;
+			    	$timeLine['future']['review']["vol"]=$vol;
+			    	$timeLine['future']['review']["num"]=$num;			    	
+			    }
+
+			}
+		}
+	}
+	return $timeLine;
+}
+
 function getFilesFromPath($originalLanguage,$path){
 	global $FILESLANG, $conf;
 
@@ -295,49 +447,6 @@ function getSerialPressReleasesMetadata($pid){
 	return $pressReleases;
 }
 
-function getArticleTimeline($currentArticle){
-	global $COUCHDB_VIEWS, $COUCHDB_QUERIES, $DB_SERVER, $DB_NAME, $LIMIT, $LANG, $conf, $tlng, $lng, $sln;
-
-	$range = substr($currentArticle,0,18);
-
-	$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["articles_range"]));
-	$articles = json_decode($query);
-
-    $timeLineIds = Array();
-    $timeLine = Array();
-
-	foreach($articles->{rows} as $index=>$article){
-		if ($article->{key} == $currentArticle){
-			$timeLineIds['previous'] = $articles->{rows}[$index+1]->{key};
-			$timeLineIds['current'] = $article->{key};
-			$timeLineIds['next'] = $articles->{rows}[$index-1]->{key};
-		}
-	}
-
-	//GETTING METADATA FROM THE ISSUES IN THE TIMELINE
-	foreach ($timeLineIds as $key=>$value){
-		$query = file_get_contents(str_replace("{pid}",$value,$COUCHDB_VIEWS["sci_article"]));
-		$article = json_decode($query);
-		$timeLine[$key]['pid'] = $value;
-		$timeLine[$key]['title'] = "";	
-		
-		// GETTING ARTICLE TITLE
-		$tmpTitle = Array();
-		foreach($article->{rows}[0]->{doc}->{v12} as $value){
-		  $tmpTitle[$value->{l}] = $value->{_};
-		}
-		if (array_key_exists($tlng,$tmpTitle)){ //IDIOMA INTERFACE
-		  $timeLine[$key]['title']=$tmpTitle[$tlng];
-		}elseif (array_key_exists($LANG,$tmpTitle)){ //IDIOMA PADRAO
-		  $timeLine[$key]['title']=$tmpTitle[$LANG];
-		}else{
-		  $timeLine[$key]['title']=current($tmpTitle);
-		}	
-	}
-
-	return $timeLine;
-}
-
 function getArticleMetadata($pid){
 	global $COUCHDB_VIEWS, $COUCHDB_QUERIES, $DB_SERVER, $DB_NAME, $LIMIT, $LANG, $conf, $tlng, $lng, $sln;
 	
@@ -350,15 +459,16 @@ function getArticleMetadata($pid){
 
 	$article = Array();
 	$article['pid'] = $pid; 
-	$article['entrDate'] = $doc->{v65}[0]->{_};
 	$article['originalLanguage'] = $doc->{v40}[0]->{_};
 	$article['title'] =  "";
-	$article['textLanguages'] = Array();
 	$article['abstractLanguages'] = Array();
 	$article['authors'] = Array();
 	$article['fpage'] = $doc->{v14}[0]->{f};
 	$article['lpage'] = $doc->{v14}[0]->{l};
-	$article['processDate'] = $doc->{v177}[0]->{_};
+	$article['processDate'] = $doc->{v65}[0]->{_};
+	$article['ahpDate'] = $doc->{v223}[0]->{_};
+	$article['rvwDate'] = $doc->{v224}[0]->{_};
+	$article['entrDate'] = $doc->{v265}[0]->{_};
 	$article['abstract'] = "";
 	$article['abstractLanguage'] = "";
 	$article['keywords'] = Array();
@@ -369,6 +479,8 @@ function getArticleMetadata($pid){
 	$article['lattes'] = "";
 	$article['timeLine'] = $timeLine;
 
+	$tmpPath = $doc->{v702}[0]->{_};
+	$article['files'] = getFilesFromPath($article['originalLanguage'],$tmpPath);
 
 	// GETTING ARTICLE TITLE
 	$tmpTitle = Array();
@@ -452,7 +564,7 @@ function getArticleMetadata($pid){
 	// GETTING AUTHORS
 	$author = Array();
 	foreach ($doc->{v10} as $value){
-	  $author['affiliation'] = $value->{1};
+	  $author['affiliation'] = explode(" ",$value->{1});
 	  $author['name'] = $value->{n};
 	  $author['surName'] = $value->{s}; 
 	  $author['role'] = $value->{r};
@@ -465,115 +577,6 @@ function getArticleMetadata($pid){
 	}
 
 	return $article;
-}
-
-function getIssueTimeline($currentIssue){
-	global $COUCHDB_VIEWS, $COUCHDB_QUERIES, $DB_SERVER, $DB_NAME, $LIMIT, $LANG, $conf, $tlng, $lng, $sln;
-
-	if (strlen($currentIssue) == 9){ // Serial Context
-
-		$query = file_get_contents(str_replace("{pid}",$currentIssue,$COUCHDB_VIEWS["issues_range"]."&limit=5&include_docs=true"));
-		$lastIssues = json_decode($query);
-		
-		$timeLine = Array();
-		foreach ($lastIssues->{rows} as $value){
-			$issue = $value->{doc};
-			$pid = $value->{key};
-	  		$vol = $issue->{v31}[0]->{_};
-	  		$pr = $issue->{v41}[0]->{_}; // Indicates if the issue is a press release
-	  		$num = $issue->{v32}[0]->{_};
-	  		$supplvol = $issue->{v131}[0]->{_};
-	  		$supplnum = $issue->{v132}[0]->{_};	
-
-			if ($pr != "pr"){  // Ignore issue if it's a press release
-			    if ($num == "ahead"){
-			    	$timeLine['future']['ahead']["pid"]=$pid;
-			    	$timeLine['future']['ahead']["vol"]=$vol;
-			    	$timeLine['future']['ahead']["num"]=$num;
-			    }
-			    if ($num == "review"){
-			    	$timeLine['future']['review']["pid"]=$pid;
-			    	$timeLine['future']['review']["vol"]=$vol;
-			    	$timeLine['future']['review']["num"]=$num;			    	
-			    }
-			    if ($supplvol == "" and $supplnum == "" and $num !="ahead"){
-			    	if (array_key_exists('current',$timeLine)){
-				    	$timeLine['previous']["pid"]=$pid;
-				    	$timeLine['previous']["vol"]=$vol;
-				    	$timeLine['previous']["num"]=$num;
-				    	$timeLine['previous']["supplvol"]=$supplvol;
-				    	$timeLine['previous']["supplnum"]=$supplnum;
-				    	break;
-				   	}else{
-				    	$timeLine['current']["pid"]=$pid;
-				    	$timeLine['current']["vol"]=$vol;
-				    	$timeLine['current']["num"]=$num;
-				    	$timeLine['current']["supplvol"]=$supplvol;
-				    	$timeLine['current']["supplnum"]=$supplnum;				   		
-				   	}
-			    }
-			}
-		}
-	}elseif (strlen($currentIssue) == 17){ //Issue Context
-		
-		$range = substr($currentIssue,0,9);
-		
-		$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["issues_range"])); // Simple query without include_docs, just to identify de issues timeline pid
-		$lastIssues = json_decode($query);
-
-		//GETTING TIME LINE ACCORDING TO CURRENT ISSUE
-        $timeLineIds = Array();
-        $timeLine = Array();
-		foreach($lastIssues->{rows} as $index=>$issue){
-			if ($issue->{key} == $currentIssue){
-				$timeLineIds['previous'] = $lastIssues->{rows}[$index+1]->{key};
-				$timeLineIds['current'] = $issue->{key};
-				$timeLineIds['next'] = $lastIssues->{rows}[$index-1]->{key};
-			}
-		}
-
-		//GETTING METADATA FROM THE ISSUES IN THE TIMELINE
-		foreach ($timeLineIds as $key=>$value){
-			$query = file_get_contents(str_replace("{pid}",$value,$COUCHDB_VIEWS["sci_issue"]));
-			$issue = json_decode($query);
-			
-			$timeLine[$key]['pid'] = $value;
-			$timeLine[$key]['vol'] = $issue->{rows}[0]->{doc}->{v31}[0]->{_};
-			$timeLine[$key]['num'] = $issue->{rows}[0]->{doc}->{v32}[0]->{_};
-			$timeLine[$key]['supplvol'] = $issue->{rows}[0]->{doc}->{v131}[0]->{_};
-			$timeLine[$key]['supplnum'] = $issue->{rows}[0]->{doc}->{v132}[0]->{_};
-			
-		}
-
-		//GETTING FUTURE ISSUES 
-		$query = file_get_contents(str_replace("{pid}",$range,$COUCHDB_VIEWS["issues_range"]."&limit=5&include_docs=true"));
-		$lastIssues = json_decode($query);
-
-		foreach ($lastIssues->{rows} as $value){
-			$issue = $value->{doc};
-			$pid = $value->{key};
-	  		$vol = $issue->{v31}[0]->{_};
-	  		$pr = $issue->{v41}[0]->{_}; // Indicates if the issue is a press release
-	  		$num = $issue->{v32}[0]->{_};
-	  		$supplvol = $issue->{v131}[0]->{_};
-	  		$supplnum = $issue->{v132}[0]->{_};	
-
-			if ($pr != "pr"){  // Ignore issue if it's a press release
-			    if ($num == "ahead"){
-			    	$timeLine['future']['ahead']["pid"]=$pid;
-			    	$timeLine['future']['ahead']["vol"]=$vol;
-			    	$timeLine['future']['ahead']["num"]=$num;
-			    }
-			    if ($num == "review"){
-			    	$timeLine['future']['review']["pid"]=$pid;
-			    	$timeLine['future']['review']["vol"]=$vol;
-			    	$timeLine['future']['review']["num"]=$num;			    	
-			    }
-
-			}
-		}
-	}
-	return $timeLine;
 }
 
 function getIssueMetadata($pid){
