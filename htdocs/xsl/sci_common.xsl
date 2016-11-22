@@ -167,13 +167,8 @@
         <xsl:param name="page"/>
         <xsl:choose>
             <xsl:when test="$script = 'sci_pdf' ">
-                <xsl:variable name="location"><xsl:choose>
-                    <xsl:when test="//ARTICLE[@PID=$seq]"><xsl:value-of select="//ARTICLE[@PID=$seq]/LANGUAGES/PDF_LANGS/LANG[.=$txtlang]/@TRANSLATION"/></xsl:when>
-                    <xsl:when test="//ARTICLE/LANGUAGES/PDF_LANGS/LANG"><xsl:value-of select="//ARTICLE[@PID=$seq]/LANGUAGES/PDF_LANGS/LANG[.=$txtlang]/@TRANSLATION"/></xsl:when>
-                    <xsl:otherwise><xsl:value-of select="$article/LANGUAGES/PDF_LANGS/LANG[.=$txtlang]/@TRANSLATION"/></xsl:otherwise>
-                </xsl:choose></xsl:variable>
                 <xsl:attribute name="href">
-                    <xsl:value-of select="$control_info/SCIELO_INFO/PATH_DATA"/>pdf/<xsl:value-of select="$location"/>
+                    <xsl:value-of select="$control_info/SCIELO_INFO/PATH_DATA"/>pdf/<xsl:value-of select="//ARTICLE[@PID=$seq]/LANGUAGES/PDF_LANGS/LANG[.=$txtlang]/@TRANSLATION"/>
                 </xsl:attribute>
             </xsl:when>
             <xsl:otherwise>
